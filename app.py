@@ -1,79 +1,138 @@
 import pandas as pd
 import streamlit as st
-import altair as alt
-import matplotlib.pyplot as plt
-import numpy as np
-import plotly.graph_objects as go
-import math
-import pickle
+import base64
+from catboost import CatBoostClassifier
 from PIL import Image
+from sklearn.preprocessing import MinMaxScaler
+from streamlit_extras.colored_header import colored_header
+from streamlit_option_menu import option_menu
+from streamlit_elements import elements, mui, nivo
+from streamlit_echarts import st_echarts 
 
 st.set_page_config(
     page_title="Premier League 2022/23",
     layout='wide'
 )
 
-st.title('Premier League 2022/23 Summary')
-url_editor = "https://www.linkedin.com/in/marselius-agus-dhion-374106226/"
-st.markdown(f'Streamlit App by [Marselius Agus Dhion]({url_editor})', unsafe_allow_html=True)
+def enter():
+    st.markdown("<br>", unsafe_allow_html=True)
+def horizontal_line():
+    st.markdown("<hr>", unsafe_allow_html=True)
+def logo_link(link, path_img, width):
+    st.markdown(
+        """<div style="display: grid; place-items: center;">
+        <a href="{}">
+        <img src="data:image/png;base64,{}" width="{}">
+        </a></div>""".format(
+            link,
+            base64.b64encode(open(path_img, "rb").read()).decode(),
+            width,
+        ),
+        unsafe_allow_html=True,
+    )    
 
-tab1, tab2, tab3, tab4 = st.tabs(['Summary Information', 'Player Stats', 'Club Stats', 'Predict Match Result'])
+with st.sidebar:
+    st.markdown("""
+        <div style='text-align: center; font-size:24px'>
+            <b>
+            Premeir League <br> 2022/2023 <br>
+            </b>
+        </div>
+    """, unsafe_allow_html=True)
+    
+    enter()
+    
+    logo_link('', r'Images/premier-league-icon.png', 125)
 
-# Tab Pertama
-with tab1 : 
-    opening_1 = "Musim Premier League 2022/2023 sudah berakhir dan telah memberikan beberapa hal-hal yang tidak terduga. Salah satu momen atau hal yang tidak terduga adalah ketika Arsenal mampu memberikan persaingan yang sengit kepada Manchester City dalam perebutan gelar juara Liga Inggris. Dimana Arsenal berhasil menduduki puncak klasemen Liga Inggris selama 29 pekan. Namun, Arsenal gagal dalam menjaga kekonsistenannya hingga akhir musim, beberapa alasannya seperti adanya cedera pada beberapa pemain kunci, dan kekonsistenan performa Manchester City ketika performa Arsenal sedang tidak konsisten. Pada akhirnya, Manchester City berhasil menduduki posisi pertama sampai dengan gamewwk terakhir. Tak hanya itu, kejutan lainnya datang dari tim yang ditangani oleh Eddie Howe, yaitu Newcastle United. Terakhir kali Newcastle berhasil masuk ke dalam top four adalah pada musim 2003/2024,  dimana pada saat itu Newcastle dipimpin oleh Alan Shearer sebagai captain tim tersebut, pada akhirnya Newcastle berhasil menduduki posisi keempat. Selain itu, Manchester United juga berhasil memastikan diri mereka mendapatkan tiket untuk bermain pada Liga Champions."
-    opening_2_1 = "Selain Manchester City, Arsenal, Manchester City, dan Newcastle City yang berhasil mendapatkan jatah bermain pada Champions League untuk musim depan. Terdapat empat tim lainnya lagi yang berhasil mendapatkan jatah untuk bermain diluar Premier League. Pada posisi kelima dan keenam ditempati oleh Liverpool dan Brighton & Hove Albion, dimana kedua tim ini berhasil mendapatkan jatah untuk bermain di Europa League. Selain itu pada posisi ketujuh ditempati oleh Aston Villa, dimana Aston Villa dapat bermain pada Conference League untuk musim depan. Tim terakhir yang ‘surprisingly’ berhasil mendapatkan jatah bermain pada Europa League adalah West Ham. West Ham dapat bermain pada Europa League dikarenakan mereka berhasil menjuarai Conference League, setelah mengalahkan Fiorentina dengan skor 2-1."    
-    opening_2_2 = "Selain ke-delapan tim tersebut yang berhasil bermain pada liga Eropa, terdapat dua tim yang kurang bermain baik pada musim ini, yaitu Tottenham dan Chelsea. Tottenham sendiri pada awal-awal musim konsisten berada dalam top four. Sedangkan Chelsea sendiri sudah menggelontorkan dana yang banyak, namun performa mereka kurang baik, salah satunya dikarenakan jumlah pemain yang terlalu banyak dan membuat tidak adanya line-up yang pasti bagi tim ini."
-    opening_3 = "Setiap musimnya pasti terdapat tiga tim yang mengalami degradasi. Musim ini tiga tim tersebut adalah juara Premier League musim 2015/2016 yaitu Leicester City, Leeds United, dan Southampton. Pada gameweek ke-38 atau match terakhir terdapat empat tim yang mempunyai kemungkinan degradasi, satu tim lainnya adalah Everton. Everton sendiri dapat terhindar dari degradasi dikarenakan kemenangan mereka atas Bournemouth dengan skor 1-0, padahal saat itu juga Leicester memenangkan laga melawan West Ham dengan skor akhir 2-1. Namun pada akhirnya Leicester yang terdegradasi. Pada gameweek terakhir Southampton juga menjadi laga yang menarik, dikarenakan mereka imbang melawan Liverpool dengan skor yang cukup besar yaitu 4-4."
+    horizontal_line()
+    
+    selected_option_menu = option_menu(menu_title=None, 
+                    options=["Summary Information", 'Player Stats', 'Club Stats', 'Predict Season 2023/24 Match Result'], 
+                    icons=['house'], 
+                    menu_icon="cast", default_index=0
+    )
+    horizontal_line()
+    
+    st.markdown("""
+        <div style='text-align: center; font-size:20px'>
+            <b>Related Links</b> <br>
+            <a href="https://www.premierleague.com" style="text-decoration: none;">Data Source</a> <br>
+            <a href="https://github.com/TheOX027/Premier-League-2022-2023-Streamlit-App" style="text-decoration: none;">Github Repository</a> <br>
+            <a href="https://www.linkedin.com/in/marselius-agus-dhion/" style="text-decoration: none;">Marselius Agus Dhion</a>
+        </div>
+    """, unsafe_allow_html=True)
+
+if selected_option_menu == "Summary Information" : 
+    paragraph_1 = "The Premier League season 2022/2023 has concluded and has provided some unexpected events. One of the surprising moments is when Arsenal managed to give a tough competition to Manchester City in the race for the English Premier League title. Arsenal secured the top spot in the Premier League table for 29 weeks. However, Arsenal failed to maintain their consistency until the end of the season, partly due to injuries to key players and Manchester City's consistent performance when Arsenal was not performing well. In the end, Manchester City secured the first position until the last gameweek. Another surprise came from Eddie Howe's team, Newcastle United. The last time Newcastle entered the top four was in the 2003/2004 season when Alan Shearer captained the team, and they ultimately secured the fourth position. Additionally, Manchester United also secured their spot in the Champions League."
+    paragraph_2 = "Apart from Manchester City, Arsenal, and Newcastle City, who secured places in the Champions League for the next season, there are four other teams that earned spots to play outside the Premier League. Liverpool and Brighton & Hove Albion claimed the fifth and sixth positions, respectively, earning spots in the Europa League. Aston Villa secured the seventh position, allowing them to play in the Conference League next season. The last team to surprisingly earn a spot in the Europa League is West Ham. West Ham earned their place in the Europa League by winning the Conference League, defeating Fiorentina with a score of 2-1."
+    paragraph_3 = "In addition to the eight teams that successfully played in European competitions, two teams, Tottenham and Chelsea, did not perform well this season. Tottenham consistently held a top-four position at the beginning of the season. Meanwhile, Chelsea, despite investing heavily, had a poor performance, partly due to the large number of players, leading to a lack of a definite lineup for the team."
+    paragrah_4 = "Every season, three teams experience relegation. This season, the relegated teams are the Premier League champions of the 2015/2016 season, Leicester City, Leeds United, and Southampton. In the 38th gameweek or the last match, four teams were at risk of relegation, with Everton being one of them. Everton avoided relegation by winning against Bournemouth with a score of 1-0, even though Leicester won their match against West Ham with a final score of 2-1. However, Leicester was ultimately relegated. In the last gameweek, Southampton also had an interesting match, drawing against Liverpool with a significant score of 4-4."
+    
     justify_text = """
-    <style>
-    .text-justify {
-        text-align: justify;
-        text-justify: inter-word;
-    }
-    </style>
+        <style>
+        .text-justify {
+            text-align: justify;
+            text-justify: inter-word;
+            font-size: 16px;
+        }
+        </style>
     """
-    
 
+    horizontal_line()
+    st.markdown("""
+        <div style='text-align: center; font-size:32px'>
+            <b>
+            Premier League 2022/23 Overview
+            </b>
+        </div>
+    """, unsafe_allow_html=True) 
+    horizontal_line()
     
-    st.header('Premier League 2022/23 Overview')
-    # Opening (Pemenangnya siapa, kedua, ketiga, keempat)
-    col1_1, col1_2 = st.columns([3,1])
-    with col1_1 : 
+    enter()
+    
+    # Club posisi ke-1,2,3,4
+    col_1_1, col_1_2 = st.columns([3,1])
+    with col_1_1 : 
         st.markdown(justify_text, unsafe_allow_html=True)
-        st.markdown(f'<div class="text-justify">{opening_1}</div>', unsafe_allow_html=True)
-    with col1_2 :
-        man_city_img = Image.open('man-city.jpeg')
+        st.markdown(f'<div class="text-justify">{paragraph_1}</div>', unsafe_allow_html=True)
+    with col_1_2 :
+        man_city_img = Image.open('Images/man-city.jpeg')
         st.image(man_city_img, caption='Man City Players Lifting PL Trophy',  use_column_width=True)
     
-    # Opening2 (Posisi ke-5,6,7, dan West Ham)
-    col2_1, col2_2 = st.columns([1,3])
-    with col2_1 : 
-        west_ham_img = Image.open('west-ham-conf-league.jpeg')
+    # Club posisi ke-5,6,7, dan West Ham
+    col_2_1, col_2_2 = st.columns([1,3])
+    with col_2_1 : 
+        west_ham_img = Image.open('Images/west-ham-conf-league.jpeg')
         st.image(west_ham_img, caption='Declan Rice with Conference League Trophy', use_column_width=True)
-    with col2_2 : 
+    with col_2_2 : 
         st.markdown(justify_text, unsafe_allow_html=True)
-        st.markdown(f'<div class="text-justify">{opening_2_1}</div>', unsafe_allow_html=True)
-        st.markdown(f'<div class="text-justify">{opening_2_2}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="text-justify">{paragraph_2}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="text-justify">{paragraph_3}</div>', unsafe_allow_html=True)
        
-    col3_1, col3_2 = st.columns([3,1])
-    with col3_1 : 
+    col_3_1, col_3_2 = st.columns([3,1])
+    with col_3_1 : 
         st.markdown(justify_text, unsafe_allow_html=True)
-        st.markdown(f'<div class="text-justify">{opening_3}</div>', unsafe_allow_html=True)
-    with col3_2 :
-        lei_city_img = Image.open('lei-relegated.jpg')
+        st.markdown(f'<div class="text-justify">{paragrah_4}</div>', unsafe_allow_html=True)
+    with col_3_2 :
+        lei_city_img = Image.open('Images/lei-relegated.jpg')
         st.image(lei_city_img, caption='Leicester City players after getting relegated', use_column_width=True)
     
-    # Center the content
-    # st.markdown('<div class="center-content"></div>', unsafe_allow_html=True)
-    st.write('____________')
+    horizontal_line()
 
     # Membaca file CSV
-    data = pd.read_csv('Position per Gameweek.csv')
-    pl_standings = pd.read_csv('PL 22-23 Standings.csv', index_col=0)
+    data = pd.read_csv('Established Datasets/Position per Gameweek.csv')
+    pl_standings = pd.read_csv('Established Datasets/PL 22-23 Standings.csv', index_col=0)
 
-    st.header('Final Standings')
-    # Membuat fungsi untuk memberikan warna pada baris
+    st.markdown("""
+        <div style='text-align: center; font-size:32px'>
+            <b> Final Standings </b>
+        </div>
+    """, unsafe_allow_html=True) 
+    horizontal_line()
+
+    enter()    
+    
+    # Fungsi untuk memberikan warna pada baris
     def highlight_row(row):
         if row.name in [1, 2, 3, 4]:
             return ['background-color: #2940D3'] * len(row)  # Light blue
@@ -89,7 +148,6 @@ with tab1 :
     # Menampilkan DataFrame dengan warna pada baris
     st.dataframe(pl_standings.drop('Image_club', axis=1).style.apply(highlight_row, axis=1), use_container_width=True)
 
-    # Legend
     legend = {
         'Label': ['Champions League', 'Europa League', 'Conference League', 'Relegation'],
         'Warna': ['#2940D3', '#DC5F00', '#1C7947', '#CF0A0A']
@@ -97,9 +155,7 @@ with tab1 :
 
     df_legend = pd.DataFrame(legend)
 
-    # Tampilkan legenda
-    st.subheader('Legend : ')
-
+    st.subheader('Legend')
     legenda_html = ""
     for i in range(len(df_legend)):
         label = df_legend.loc[i, 'Label']
@@ -107,54 +163,63 @@ with tab1 :
         legenda_html += f'<span style="color:{color}">■</span> {label} &nbsp;&nbsp;'
 
     st.markdown(f'<div style="white-space: nowrap;">{legenda_html}</div>', unsafe_allow_html=True)
+    enter()
     
-    # col1, col2 = st.columns([5, 2])
-    st.write('________________')
-    st.header('Performance Chart')
+    horizontal_line()
+    st.markdown("""
+        <div style='text-align: center; font-size:32px'>
+            <b> Performance Chart </b>
+        </div>
+    """, unsafe_allow_html=True) 
+    horizontal_line()
 
-    # ====================================================== #
-    with st.container() : 
-        # Membuat select box untuk memilih klub
-        clubs = data['Club'].unique()
-        selected_clubs = st.multiselect('Choose Club (One or More Than One Club)', clubs)
+    # Filter klub
+    clubs = data['Club'].unique()
+    selected_clubs = st.multiselect('Choose Club (One or More Than One Club)', clubs)
+    selected_data = data[data['Club'].isin(selected_clubs)]
 
-        # Memfilter data berdasarkan klub yang dipilih
-        club_data = data[data['Club'].isin(selected_clubs)]
+    # Tambahkan kode ECharts di sini
+    option = {
+        "title": {"text": "Position"},
+        "tooltip": {"trigger": "item", "formatter": "Position: {c}"},
+        "legend": {"data": selected_clubs, "show": True, "textStyle": {"color": "white"}},
+        "grid": {"left": 30, "right": 110, "bottom": 30, "containLabel": True},
+        "xAxis": {
+            "type": "category",
+            "name": "Gameweek",
+            "splitLine": {"show": True},
+            "axisLabel": {"margin": 10, "fontSize": 12},
+            "boundaryGap": False,
+            "data": selected_data['Gameweek'].unique().tolist()
+        },
+        "yAxis": {
+            "type": "value",
+            "axisLabel": {"margin": 30, "fontSize": 12, "formatter": '{value}'},
+            "inverse": True,
+            "interval": 1,
+            "min": 1,
+            "max": 20
+        },
+        "series": [
+            {
+                "name": club,
+                "symbolSize": 10,
+                "type": 'line',
+                "smooth": True,
+                "emphasis": {"focus": 'series'},
+                "endLabel": {"show": True, "formatter": '{a}', "distance": 20, "color": "white"},
+                "lineStyle": {"width": 3},
+                "data": selected_data[selected_data['Club'] == club]['Position'].tolist()
+            }
+            for club in selected_clubs
+        ]
+    }
 
-        # Membuat line chart menggunakan Altair
-        chart = alt.Chart(club_data).mark_line().encode(
-            x=alt.X('Gameweek:Q', scale=alt.Scale(domain=[1, 38]), axis=alt.Axis(labelAngle=0)),
-            y=alt.Y('Position:Q', scale=alt.Scale(domain=[1, 20], reverse=True), title='Position'),
-            color='Club:N',
-            tooltip=['Gameweek', 'Position']
-        ).properties(
-            width=600,
-            height=400,
-            title='Position Changes'
-        )
-
-        # Menambahkan titik/dot pada setiap datapoint
-        chart += alt.Chart(club_data).mark_circle(size=100).encode(
-            x='Gameweek',
-            y='Position',
-            color='Club:N',
-            tooltip=['Gameweek', 'Position']
-        )
-
-        # Mengatur langkah nilai pada sumbu y
-        chart = chart.configure_axisY(
-            tickMinStep=1
-        )
-
-        # Menampilkan line chart pada Streamlit
-        st.altair_chart(chart, use_container_width=True)
+    # Tampilkan grafik menggunakan st_echarts
+    st_echarts(options=option, height="500px")
 
 
-             
-    # ======== Dataframe list top players Start ======== #
-
-# Tab Kedua
-with tab2 :     
+if selected_option_menu == "Player Stats" : 
     st.markdown(
         """
         <style>
@@ -166,332 +231,497 @@ with tab2 :
         unsafe_allow_html=True,
     )
     
-    st.header("Top Scorer")
+    col_scorer_header, _ = st.columns([2,1])
+    with col_scorer_header:
+        colored_header(
+            label="Top Scorer",
+            description="",
+            color_name="orange-70",
+        )
+    
     col_scorer, col_scorer_img = st.columns([2,1])
-
-    st.markdown('<h2 class="text-right">Top Assist</h2>', unsafe_allow_html=True)
-    col_assist_img, col_assist = st.columns([1,2])
-
-    st.header("Top Clean Sheet")
-    col_cleansheet, col_cleansheet_img = st.columns([2,1])
-
-    df_top_assist = pd.read_csv('Top Asissts.csv', index_col=0)
-    df_top_cleansheet = pd.read_csv('Top Clean Sheet.csv', index_col=0)
-    df_top_scorer = pd.read_csv('Top Scorers.csv', index_col=0)
-
-    # Players Image
-    golden_boot_img = Image.open('golden-boot.jpg')
-    golden_glove_img = Image.open('golden-glove.jpg')
-    pots_img = Image.open('playmaker-of-the-season.jpg')
-
-    # Polygon Plotting 
-    def normalize_log(data):
-        normalized_data = [math.log(x + 1) for x in data]  # Menggunakan logaritma natural dengan penambahan 1 untuk menghindari log(0)
-        return normalized_data
-
-    def plot_polygon_with_feature_values(selected_indices, feature_names, feature_values):
-        n = len(selected_indices)  # Jumlah sisi poligon yang dipilih
-        angles = [i * 360 / float(n) for i in range(n)]  # Menghitung sudut untuk setiap sisi dalam derajat
-
-        # Normalisasi feature_values
-        feature_values_normalized = normalize_log(feature_values)
-
-        # Menambahkan satu elemen tambahan untuk memastikan kesimetrisan poligon
-        feature_values_normalized += [feature_values_normalized[0]]
-        feature_names += [feature_names[0]]
-        angles += [angles[0] + 360]
-
-        # Membuat plotly figure
-        fig = go.Figure()
-
-        # Menambahkan trace untuk poligon
-        fig.add_trace(go.Scatterpolar(
-            r=feature_values_normalized,
-            theta=angles,
-            fill='toself',
-            fillcolor='rgba(0, 123, 255, 0.2)',
-            line=dict(color='rgb(0, 123, 255)'),
-            hovertemplate='Nilai (Normalized): %{r:.2f}<br>Nilai (Original): %{text}<extra></extra>',
-            text=feature_values,
-            marker=dict(
-                    size=10,  # Mengatur ukuran titik datapoint
-                    symbol='circle'  # Mengatur simbol titik datapoint
-            )        
-        ))
-
-        # Mengatur tampilan sumbu sudut
-        fig.update_layout(
-            polar=dict(
-                radialaxis=dict(showticklabels=False, ticks=''),
-                angularaxis=dict(showticklabels=True, tickmode='array', tickvals=angles, ticktext=feature_names)
-            ),
-            title='Players Features Value',  # Judul plot
+    enter()
+    
+    _, col_assist_header = st.columns([1,2])
+    with col_assist_header:
+        colored_header(
+            label="Top Assist",
+            description="",
+            color_name="orange-70",
         )
 
-        # Mengatur ukuran plot
-        fig.update_layout(width=500, height=500)
+    col_assist_img, col_assist = st.columns([1,2])
+    enter()
 
-        # Menampilkan plot menggunakan Streamlit
-        st.plotly_chart(fig)
+    col_clean_sheet_header, _ = st.columns([2,1])
+    with col_clean_sheet_header:
+        colored_header(
+            label="Top Clean Sheet",
+            description="",
+            color_name="orange-70",
+        )
+        
+    col_cleansheet, col_cleansheet_img = st.columns([2,1])
+    enter()
 
     with st.container(): 
         with col_scorer :
+            df_top_scorer = pd.read_csv('Established Datasets/Top Scorers.csv', index_col=0)
             st.dataframe(df_top_scorer, use_container_width=True)
                     
         with col_scorer_img :
+            golden_boot_img = Image.open('Images/golden-boot.jpg')
             st.image(golden_boot_img, caption='Erling Braut Halaand')
+            
             with st.expander('Player Features Stats') : 
-                feature_names = ['Headed Goals', 'Goals with right foot', 'Goals with left foot', 'Penalties Scored', 'Shots accuracy (%)', 'Big chances missed']  # Nama-nama fitur
-                feature_values = [7, 6, 23, 7, 49, 28]  # Nilai fitur pada setiap sisi poligon
+                feature_names = ['Headed Goals', 'Goals with right foot', 'Goals with left foot', 'Penalties Scored', 'Shots accuracy (%)', 'Big chances missed']
+                feature_values = [7, 6, 23, 7, 49, 28]
                 selected_features = st.multiselect('Select Features', feature_names, default=feature_names)
-                selected_indices = [feature_names.index(feature) for feature in selected_features]
-                selected_values = [feature_values[i] for i in selected_indices]
-                plot_polygon_with_feature_values(selected_indices, selected_features, selected_values)
-                st.write('Source : Premier League')
+                radar_data = [{"indicator": {"text": feature, "itemStyle": {"color": "#FFFFFF"}}, "value": value} for feature, value in zip(feature_names, feature_values) if feature in selected_features]
+
+                with elements(f"nivo_charts_top_scorer"):
+                    with mui.Box(sx={"height": 400}):
+                        nivo.Radar(
+                            data=radar_data,
+                            keys=["value"],
+                            indexBy="indicator.text",
+                            margin={"top": 70, "right": 80, "bottom": 40, "left": 80},
+                            theme={"background": "#0E1117", "tooltip": {"container": {"background": "#0E1117", "color": "#FFFFFF"}}},   
+                        )
                 
         with col_assist :
+            df_top_assist = pd.read_csv('Established Datasets/Top Asissts.csv', index_col=0)
             st.dataframe(df_top_assist, use_container_width=True)
+            
         with col_assist_img : 
+            pots_img = Image.open('Images/playmaker-of-the-season.jpg')
             st.image(pots_img, caption='Kevin de Bruyne', use_column_width=True)
             with st.expander('Player Features Stats') :
-                feature_names = ['Passes', 'Passes/nper match', 'Big chances created', 'Cross accuracy (%)', 'Through balls', 'Accurate long balls']  # Nama-nama fitur
-                feature_values = [1357, 42.41, 31, 29, 28, 81]  # Nilai fitur pada setiap sisi poligon
-                selected_features = st.multiselect('Select Features', feature_names, default=feature_names)
-                selected_indices = [feature_names.index(feature) for feature in selected_features]
-                selected_values = [feature_values[i] for i in selected_indices]
-                plot_polygon_with_feature_values(selected_indices, selected_features, selected_values)
-                st.write('Source : Premier League')
 
+                feature_names = ['Passes per match', 'Big chances created', 'Cross accuracy (%)', 'Through balls', 'Accurate long balls']
+                feature_values = [42.41, 31, 29, 28, 81]
+                selected_features = st.multiselect('Select Features', feature_names, default=feature_names)
+                radar_data = [{"indicator": {"text": feature, "itemStyle": {"color": "#FFFFFF"}}, "value": value} for feature, value in zip(feature_names, feature_values) if feature in selected_features]
+
+                with elements(f"nivo_charts_top_assist"):
+                    with mui.Box(sx={"height": 400}):
+                        nivo.Radar(
+                            data=radar_data,
+                            keys=["value"],
+                            indexBy="indicator.text",
+                            margin={"top": 70, "right": 80, "bottom": 40, "left": 80},
+                            theme={"background": "#0E1117", "tooltip": {"container": {"background": "#0E1117", "color": "#FFFFFF"}}},   
+                        )
+        
+                                                        
         with col_cleansheet :
+            df_top_cleansheet = pd.read_csv('Established Datasets/Top Clean Sheet.csv', index_col=0)
             st.dataframe(df_top_cleansheet, use_container_width=True)
+            
         with col_cleansheet_img:
+            golden_glove_img = Image.open('Images/golden-glove.jpg')
             st.image(golden_glove_img, caption='David de Gea')
             with st.expander('Player Features Stats') :
-                feature_names = ['Saves', 'Penalties Saved', 'Goal Conceded', 'Erros leading to goal', 'Own goals', 'Accurate long balls', 'Punches', 'High Claims', 'Catches']  # Nama-nama fitur
-                feature_values = [101, 1, 43, 2, 0, 187, 12, 14, 5]  # Nilai fitur pada setiap sisi poligon
+                feature_names = ['Saves', 'Penalties Saved', 'Goal Conceded', 'Erros leading to goal', 'Own goals', 'Accurate long balls', 'Punches', 'High Claims', 'Catches']
+                feature_values = [101, 1, 43, 2, 0, 187, 12, 14, 5]
                 selected_features = st.multiselect('Select Features', feature_names, default=feature_names)
-                selected_indices = [feature_names.index(feature) for feature in selected_features]
-                selected_values = [feature_values[i] for i in selected_indices]
-                plot_polygon_with_feature_values(selected_indices, selected_features, selected_values)
-                st.write('Source : Premier League')
+            
+                with elements(f"nivo_charts_clean_sheet"):
+                    with mui.Box(sx={"height": 400}):
+                        nivo.Radar(
+                            data=radar_data,
+                            keys=["value"],
+                            indexBy="indicator.text",
+                            margin={"top": 70, "right": 80, "bottom": 40, "left": 80},
+                            theme={"background": "#0E1117", "tooltip": {"container": {"background": "#0E1117", "color": "#FFFFFF"}}},   
+                        )                        
+                        
     
-    source_data2 = "https://www.premierleague.com/stats/top/players/goals?se=489"
-    st.markdown(f'Source : [Players Stats]({source_data2})', unsafe_allow_html=True)
-
-    # ======== Dataframe list top players End ======== #
-
-    # Fungsi untuk membuat plot poligon atribut klub dengan nilai-nilai fitur yang diberikan
-    def plot_club_polygon_with_feature_values(clubs_data, feature_names):
-        n = len(clubs_data)  # Jumlah klub yang dipilih
-        n_features = len(clubs_data[0]['values'])  # Jumlah fitur
-
-        # Normalisasi nilai fitur untuk setiap klub
-        for club_data in clubs_data:
-            club_data['values_normalized'] = normalize_log(club_data['values'])
-
-        # Menambahkan satu elemen tambahan untuk memastikan kesimetrisan poligon
-        for club_data in clubs_data:
-            club_data['values_normalized'].append(club_data['values_normalized'][0])
-            club_data['values'].append(club_data['values'][0])
-
-        # Mengatur sudut untuk setiap sisi poligon
-        angles = [i * 360 / float(n_features) for i in range(n_features)]
-        angles += [angles[0]]  # Menghapus 360 dari daftar sudut
-
-        # Daftar warna yang akan digunakan untuk setiap klub
-        colors = ['red', 'green', 'blue', 'orange', 'purple', 'yellow', 'pink']
-
-        # Membuat plotly figure
-        fig = go.Figure()
-
-        # Menambahkan trace untuk setiap klub
-        for i, club_data in enumerate(clubs_data):
-            fig.add_trace(go.Scatterpolar(
-                r=club_data['values_normalized'],
-                theta=angles,
-                fill='toself',
-                name=club_data['name'],
-                line_color=colors[i % len(colors)],  # Mengatur warna plot berdasarkan indeks klub
-                hovertemplate='Club:' + club_data['name'] + '<br>Nilai (Normalized): %{r:.2f}<br>Nilai (Original): %{text}<extra></extra>',
-                text=club_data['values'],
-                customdata=[club_data['name']] + angles[:-1],  # Menambahkan nama klub ke data kustom
-                marker=dict(
-                    size=11,  # Mengatur ukuran titik datapoint
-                    symbol='circle'  # Mengatur simbol titik datapoint
-            )
-            ))
-
-        # Mengatur tampilan sumbu sudut
-        fig.update_layout(
-            polar=dict(
-                radialaxis=dict(showticklabels=False, ticks=''),
-                angularaxis=dict(showticklabels=True, tickmode='array', tickvals=angles[:-1], ticktext=feature_names)
-            ),
-            title='Club Attributes Polygon Plot',  # Judul plot
+if selected_option_menu == "Club Stats" : 
+    horizontal_line()
+    st.markdown("""
+        <div style='text-align: center; font-size:32px'>
+            <b> Club Attribute Stats </b>
+        </div>
+    """, unsafe_allow_html=True)
+    horizontal_line()
+    
+    def radar_chart_attr(data, default_attr, key):
+        data['Club'] = data['Club'].str.strip()
+        selected_clubs = st.multiselect(
+            "Select Clubs", 
+            options=data["Club"].unique(), 
+            default=['Arsenal', 'Manchester City', 'Southampton'],
+            key=f"club_{key}"
+        )
+        selected_columns = st.multiselect(
+            "Select Attribute", 
+            options=data.columns[2:], 
+            default=default_attr,
+            key=f"attr_{key}"
         )
 
-        # Mengatur ukuran plot
-        fig.update_layout(width=700, height=500)
+        filtered_data = data[data["Club"].isin(selected_clubs)]
 
-        # Menampilkan plot menggunakan Streamlit
-        st.plotly_chart(fig)
+        # Prepare data for radar chart
+        radar_data = []
+        for _, row in filtered_data.iterrows():
+            radar_data.append({"Club": row["Club"], **{col: row[col] for col in selected_columns}})
 
- 
-with tab3 : 
-    st.header('Club Attribute Stats')      
-   # Membaca data dari file CSV
-    df_attack = pd.read_csv('attack.csv')
-    df_defence = pd.read_csv('defence.csv')
-    df_team_play = pd.read_csv('team_play.csv')
+        max_value = max(filtered_data[selected_columns].max())
 
-    att_col, def_col = st.columns(2)
-    col2_1, teamplay_col, col2_3 = st.columns([1,2,1])
-    # Menggunakan Streamlit untuk memilih klub-klub yang ingin dibandingkan pada file attack.csv
-    with att_col : 
-        st.subheader('Attack Attributes')
-        with st.expander('Choose Club Here'):
-            club_options_attack = df_attack['Club'].unique().tolist()
-            selected_clubs_attack = st.multiselect('Available Clubs', club_options_attack)
-            clubs_data_attack = []
+        # Render radar chart
+        with elements(f"nivo_charts_{key}"):
+            with mui.Box(sx={"height": 400}):
+                nivo.Radar(
+                    data=radar_data,
+                    keys=selected_columns,
+                    indexBy="Club",
+                    valueFormat=">-.2f",
+                    margin={"top": 70, "right": 80, "bottom": 40, "left": 80},
+                    borderColor={"from": "color"},
+                    gridLabelOffset=36,
+                    dotSize=10,
+                    dotColor={"theme": "background"},
+                    dotBorderWidth=2,
+                    # maxValue=max_value + 20,
+                    motionConfig="wobbly",
+                    legends=[
+                        {
+                            "anchor": "top-left",
+                            "direction": "column",
+                            "translateX": -50,
+                            "translateY": -40,
+                            "itemHeight": 20,
+                            "itemTextColor": "#FFFFFF",
+                            "symbolSize": 12,
+                            "itemTextSize": 14,
+                            "symbolShape": "circle",
+                            "effects": [
+                                {
+                                    "on": "hover",
+                                    "style": {
+                                        "itemTextColor": "#999"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    theme={
+                        "background": "#0E1117",
+                        "textColor": "#FFFFFF",
+                        "tooltip": {
+                            "container": {
+                                "background": "#0E1117",
+                                "color": "#FFFFFF",
+                            }
+                        }
+                    },
+                )
 
-            # Mengambil data klub yang dipilih pada file attack.csv
-            for club in selected_clubs_attack:
-                club_data_attack = {
-                    'name': club,
-                    'values': df_attack[df_attack['Club'] == club].values.flatten()[2:].astype(float).tolist()
-                }
-                clubs_data_attack.append(club_data_attack)
+    att_col, def_col, teamplay_col = st.columns(3)
 
-            # Menampilkan poligon untuk klub-klub yang dipilih pada file attack.csv
-            if len(clubs_data_attack) > 0:
-                plot_club_polygon_with_feature_values(clubs_data_attack, df_attack.columns[2:].tolist())
+    with att_col:
+        st.markdown("""
+            <div style='text-align: center; font-size:32px'>
+                <b> Attack Attributes </b>
+            </div>
+        """, unsafe_allow_html=True)
+        enter()
+        with st.expander('Choose Club Here', expanded=True):
+            df_attack = pd.read_csv('Established Datasets/attack.csv')
+            radar_chart_attr(df_attack, default_attr=["Goals Inside Box", "Goals Outside Box"], key="attack")
 
-    with def_col :
-        # Menggunakan Streamlit untuk memilih klub-klub yang ingin dibandingkan pada file defence.csv
-        st.subheader('Defence Attributes')
-        with st.expander('Choose Club Here'):
-            club_options_defence = df_defence['Club'].unique().tolist()
-            selected_clubs_defence = st.multiselect('Available Clubs', club_options_defence)
-            clubs_data_defence = []
+    with def_col:
+        st.markdown("""
+            <div style='text-align: center; font-size:32px'>
+                <b> Defence Attributes </b>
+            </div>
+        """, unsafe_allow_html=True)
+        enter()
+        with st.expander('Choose Club Here', expanded=True):
+            df_defence = pd.read_csv('Established Datasets/defence.csv')
+            radar_chart_attr(df_defence, default_attr=["Penalties Conceded", "Clean Sheets"], key="defence")
 
-            # Mengambil data klub yang dipilih pada file defence.csv
-            for club in selected_clubs_defence:
-                club_data_defence = {
-                    'name': club,
-                    'values': df_defence[df_defence['Club'] == club].values.flatten()[2:].astype(float).tolist()
-                }
-                clubs_data_defence.append(club_data_defence)
-
-            # Menampilkan poligon untuk klub-klub yang dipilih pada file defence.csv
-            if len(clubs_data_defence) > 0:
-                plot_club_polygon_with_feature_values(clubs_data_defence, df_defence.columns[2:].tolist())
-
-    with teamplay_col : 
-        # Menggunakan Streamlit untuk memilih klub-klub yang ingin dibandingkan pada file team_play.csv
-        st.subheader('Team Play Attributes')
-        with st.expander('Choose Club Here'):
-            club_options_team_play = df_team_play['Club'].unique().tolist()
-            selected_clubs_team_play = st.multiselect('Available Clubs', club_options_team_play)
-            clubs_data_team_play = []
-
-            # Mengambil data klub yang dipilih pada file team_play.csv
-            for club in selected_clubs_team_play:
-                club_data_team_play = {
-                    'name': club,
-                    'values': df_team_play[df_team_play['Club'] == club].values.flatten()[2:].astype(float).tolist()
-                }
-                clubs_data_team_play.append(club_data_team_play)
-
-            # Menampilkan poligon untuk klub-klub yang dipilih pada file team_play.csv
-            if len(clubs_data_team_play) > 0:
-                plot_club_polygon_with_feature_values(clubs_data_team_play, df_team_play.columns[2:].tolist())
+    with teamplay_col:
+        st.markdown("""
+            <div style='text-align: center; font-size:32px'>
+                <b> Team Play Attributes </b>
+            </div>
+        """, unsafe_allow_html=True)
+        enter()
+        with st.expander('Choose Club Here', expanded=True):
+            df_team_play = pd.read_csv('Established Datasets/team_play.csv')
+            radar_chart_attr(df_team_play, default_attr=["Crosses", "Through Ball"], key="team_play")
+                                            
+if selected_option_menu == "Predict Season 2023/24 Match Result" : 
+    horizontal_line()
+    st.markdown("""
+        <div style='text-align: center; font-size:32px'>
+            <b>
+            Predict Season 2023/24 Match Result
+            </b>
+        </div>
+    """, unsafe_allow_html=True)
+    horizontal_line()
+    enter()
     
-    source_data3 = "https://www.premierleague.com/stats/top/clubs/wins?se=489"
-    st.markdown(f'Source : [Premier League Club Stats]({source_data3})', unsafe_allow_html=True)
+    # Initialize the scaler
+    scaler = MinMaxScaler()
+    scaler.fit(pd.DataFrame({
+        'ht_home_score': [0, 5],
+        'ht_away_score': [0, 5],
+        'home_possession_%': [0.17, 0.82],
+        'away_possession_%': [0.17, 0.82],
+        'home_shots_on_target': [0, 17],
+        'away_shots_on_target': [0, 15],
+        'home_shots': [0, 44],
+        'away_shots': [0, 33],
+        'home_touches': [335, 1160],
+        'away_touches': [294, 1116],
+        'home_passes': [155, 1015],
+        'away_passes': [148, 976],
+        'home_tackles': [3, 48],
+        'away_tackles': [3, 50],
+        'home_clearances': [0, 107],
+        'away_clearances': [1, 129],
+        'home_corners': [0, 20],
+        'away_corners': [0, 19],
+        'home_offsides': [0, 14],
+        'away_offsides': [0, 12],
+        'home_yellow_cards': [0, 7],
+        'away_yellow_cards': [0, 9],
+        'home_red_cards': [0, 2],
+        'away_red_cards': [0, 2],
+        'home_fouls': [0, 34],
+        'away_fouls': [0, 29],
+        'home_total_points_last_5': [0, 15],
+        'away_total_points_last_5': [0, 15],
+        'home_h2h_points_last_5': [0, 15],
+        'away_h2h_points_last_5': [0, 15],
+    }))
 
-    
-with tab4 :         
-    model_path = "model_result.pkl"
-    pickle_in = open(model_path, "rb")
-    model = pickle.load(pickle_in)
-    
-    st.header('Predicting Premier League Match Result')
-    
-    # Membuat sebuah list
-    list_items = ["Arsenal : 0", "Aston Villa : 1", "Bournemouth : 6", "Brentford : 7", "Brighton & Hove Albion : 8",
-                  "Burnley : 9", "Chelsea : 12", "Crystal Palace : 13", "Everton : 15", "Fulham : 16", "Liverpool : 21",
-                  "Luton Town : X", "Man. City : 22", "Man. United : 23", "Newcastle United : 26", "Nott'm Forrst : 28",
-                  "Sheffield United : 32", "Tottenham Hostpur : 37", "West Ham United : 40", "Wolves : 42"]
+    def preprocess_input(data):
+        df = pd.DataFrame([data])
+        numeric_features = ['ht_home_score', 'ht_away_score', 'home_possession_%',
+        'away_possession_%', 'home_shots_on_target', 'away_shots_on_target',
+        'home_shots', 'away_shots', 'home_touches', 'away_touches',
+        'home_passes', 'away_passes', 'home_tackles', 'away_tackles',
+        'home_clearances', 'away_clearances', 'home_corners', 'away_corners',
+        'home_offsides', 'away_offsides', 'home_yellow_cards',
+        'away_yellow_cards', 'home_red_cards', 'away_red_cards', 'home_fouls',
+        'away_fouls', 'home_total_points_last_5', 'away_total_points_last_5',
+        'home_h2h_points_last_5', 'away_h2h_points_last_5']
+        
+        df[numeric_features] = scaler.transform(df[numeric_features])
+        return df
 
-    # Menampilkan expander di sidebar
-    with st.expander("Home | Away Teams Code Numbers Information"):
-        col_club1, col_club2 = st.columns(2)
-        # Menampilkan setiap elemen list menggunakan st.markdown
-        with col_club1 : 
-            for item in list_items[:10]:
-                st.markdown(f"- {item}")
-        with col_club2 :
-            for item in list_items[10:]:
-                st.markdown(f"- {item}")
-        st.write("Ket : X -> Tidak bisa diprediksi (Tidak ada history data)")
-                    
-    cols_home, cols_penengah, cols_away = st.columns([4,1,4])
+    # Mapping teams to numbers
+    team_map = {
+        "Arsenal": 0, "Aston Villa": 1, "Bournemouth": 6,
+        "Brentford": 7, "Brighton & Hove Albion": 8,
+        "Burnley": 9, "Chelsea": 12, "Crystal Palace": 13,
+        "Everton": 15, "Fulham": 16, "Liverpool": 21,
+        "Manchester City": 22, "Manchester United": 23,
+        "Newcastle United": 26, "Nottingham Forest": 28,
+        "Sheffield United": 32, "Tottenham Hostpur": 37,
+        "West Ham United": 40, "Wolverhampton Wanderers": 42
+    }
 
-    no_team_options = [0,1,6,7,8,9,12,13,15,16,
-                       21,22,23,26,28,32,37,40,42]
+    # Derby teams list
+    derby_teams = [
+        ['Liverpool', 'Everton'],
+        ['Arsenal', 'Tottenham'],
+        ['Aston Villa', 'Birmingham City', 'Wolverhampton Wanderers'],
+        ['Manchester United', 'Manchester City'],
+        ['Newcastle United', 'Sunderland'],
+        ['Portsmouth', 'Southampton'],
+        ['Chelsea', 'Fulham', 'Queens Park Rangers'],
+        ['Derby County', 'Leicester', 'Nottingham Forest'],
+        ['Blackburn Rovers', 'Bolton Wanderers', 'Burnley', 'Blackpool'],
+        ['Middlesbrough', 'Sunderland'],
+        ['Stoke City', 'Port Vale'],
+        ['Leeds United', 'Huddersfield Town'],
+        ['Sheffield United', 'Sheffield Wednesday'],
+        ['Norwich City', 'Ipswich Town'],
+        ['Cardiff City', 'Swansea City'],
+        ['Southampton', 'Portsmouth'],
+        ['Bristol City', 'Bristol Rovers'],
+        ['Nottingham Forest', 'Notts County']
+    ]
 
-    with cols_home:
-        home_team = st.selectbox('Home Team', options=no_team_options)
-        home_possesion = st.slider('Home Team Possesion',0, 100, value=0)
-        cols_home_1, cols_home_2 = st.columns(2)
-        with cols_home_1 : 
-            ht_home_score = st.text_input('Half Time Home Scored', value=0)
-            home_SoT = st.text_input('Home Shots on Target', value=0)
-            home_shots = st.text_input('Home Shots', value=0)
-            home_touches = st.text_input('Home Touches', value=0)
-            home_passes = st.text_input('Home Passes', value=0)
-            home_tackles = st.text_input('Home Tackles', value=0)
-        with cols_home_2 :
-            home_clearances = st.text_input('Home Clearances', value=0)
-            home_corners = st.text_input('Home Corners', value=0)
-            home_offsides = st.text_input('Home Offsides', value=0)
-            home_yellow_card = st.text_input('Home Yellow Card', value=0)
-            home_red_card = st.text_input('Home Red Card', value=0)
-            home_fouls = st.text_input('Home Fouls', value=0)
+    # Function to determine if the match is a derby
+    def is_derby(home_team, away_team):
+        for derby_pair in derby_teams:
+            if home_team in derby_pair and away_team in derby_pair:
+                return 1
+        return 0
 
-    with cols_away:
-        away_team = st.selectbox('Away Team', options=no_team_options)
-        away_possesion = st.slider('Away Team Possesion',0, 100, value=100-home_possesion)
-        cols_away_1, cols_away_2 = st.columns(2)
-        with cols_away_1 : 
-            ht_away_score = st.text_input('Half Time Away Scored', value=0)
-            awat_SoT = st.text_input('Away Shots on Target', value=0)
-            awat_shots = st.text_input('Away Shots', value=0)
-            away_touches = st.text_input('Away Touches', value=0)
-            away_passes = st.text_input('Away Passes', value=0)
-            away_tackles = st.text_input('Away Tackles', value=0)
-        with cols_away_2 : 
-            away_clearances = st.text_input('Away Clearances', value=0)
-            away_corners = st.text_input('Away Corners', value=0)
-            away_offsides = st.text_input('Away Offsides', value=0)
-            away_yellow_card = st.text_input('Away Yellow Card', value=0)
-            away_red_card = st.text_input('Away Red Card', value=0)
-            away_fouls = st.text_input('Away Fouls', value=0)
+    cols_home_team, col_penengah, cols_away_team = st.columns([3, 2, 3])
 
-    result_prediction = model.predict([[home_team, away_team, ht_home_score, ht_away_score,
-                                        home_possesion, away_possesion,
-                                        home_SoT, awat_SoT, home_shots, awat_shots, 
-                                        home_touches, away_touches, home_passes, away_passes,
-                                        home_tackles, away_tackles, home_clearances, away_clearances,
-                                        home_corners, away_corners, home_offsides, away_offsides,
-                                        home_yellow_card, away_yellow_card, home_red_card, away_red_card,
-                                        home_fouls, away_fouls
-                                        ]])
-    result_match = ''
-    
-    if st.button('PREDICT', use_container_width=True) : 
-        if(result_prediction[0] == 'W') : result_match = 'Home Team Will Win' 
-        elif(result_prediction[0] == 'L') : result_match = 'Home Team Will Lost' 
-        elif(result_prediction[0] == 'D') : result_match = 'Home Team Will Draw' 
-        st.success(result_match)
-    
+    with cols_home_team:
+        home_team_default_index = list(team_map.keys()).index("Arsenal")
+        home_team = st.selectbox('Home Team', options=list(team_map.keys()), index=home_team_default_index)
+        col_home_ht_score, col_possession_home = st.columns(2)
+        
+        with col_home_ht_score:
+            ht_home_score = st.number_input('HT Home Scored', value=0)
+        with col_possession_home:
+            home_possession = st.slider('Home Team Possesion', 0, 100, value=0)
+        
+        st.write("____")
+        
+        cols_home_1, cols_home_2, cols_home_3, cols_home_4 = st.columns(4)
+        
+        with cols_home_1:
+            home_shots_on_target = st.number_input('Shots on Target (H)', value=0)
+            home_shots = st.number_input('Shots (H)', value=0)
+            home_touches = st.number_input('Touches (H)', value=0)
+        with cols_home_2:
+            home_passes = st.number_input('Passes (H)', value=0)
+            home_tackles = st.number_input('Tackles (H)', value=0)
+            home_clearances = st.number_input('Clearances (H)', value=0)
+        with cols_home_3:
+            home_corners = st.number_input('Corners (H)', value=0)
+            home_offsides = st.number_input('Offsides (H)', value=0)
+            home_fouls = st.number_input('Fouls (H)', value=0)
+        with cols_home_4:
+            home_yellow_cards = st.number_input('Yellow Cards (H)', value=0)
+            home_red_cards = st.number_input('Red Cards (H)', value=0)
+        
+        st.write("____")
+        
+        col_home_points_last_5, col_home_h2h_points_last_5 = st.columns(2)
+        with col_home_points_last_5:
+            home_total_points_last_5 = st.number_input('Total Points from Last 5 Games (H)', value=0)
+        with col_home_h2h_points_last_5:
+            home_h2h_points_last_5 = st.number_input('H2H Total Points from Last 5 Games (H)', value=0)
+
+    with col_penengah:
+        venue_dict = {
+            'Arsenal': [11, 'Emirates Stadium, London'],
+            'Aston Villa': [48, 'Villa Park, Birmingham'],
+            'Bournemouth': [49, 'Vitality Stadium, Bournemouth'],
+            'Brentford': [17, 'Gtech Community Stadium, Brentford'],
+            'Burnley': [45, 'Turf Moor, Burnley'],
+            'Chelsea': [39, 'Stamford Bridge, London'],
+            'Crystal Palace': [32, 'Selhurst Park, London'],
+            'Everton': [16, 'Goodison Park, Liverpool'],
+            'Fulham': [8, 'Craven Cottage, London'],
+            'Liverpool': [1, 'Anfield, Liverpool'],
+            'Manchester City': [12, 'Etihad Stadium, Manchester'],
+            'Manchester United': [29, 'Old Trafford, Manchester'],
+            'Newcastle United': [36, "St. James' Park, Newcastle"],
+            'Nottingham Forest': [40, 'The City Ground, Nottingham'],
+            'Sheffield United': [4, 'Bramall Lane, Sheffield'],
+            'Tottenham': [50, 'Wembley Stadium, London'],
+            'West Ham': [24, 'London Stadium, London'],
+            'Wolverhampton Wanderers': [28, 'Molineux Stadium, Wolverhampton'],
+        }
+
+        referee_map = {
+            'Michael Oliver': 31, 'Andy Madley': 25,
+            'Robert Jones': 11, 'Peter Bankes': 40,
+            'Craig Pawson': 41, 'Jarred Gillett': 23,
+            'Darren England': 21, 'Michael Salisbury': 39,
+            'John Brooks': 42, 'Tony Harrington': 44,
+            'David Coote': 47, 'Graham Scott': 27,
+            'Thomas Bramall': 17, 'Chris Kavanagh': 35
+        }
+
+        venue_show = st.text_input('Venue/Stadium', value=venue_dict[home_team][1], disabled=True)
+        venue = venue_dict[home_team][0]
+
+        referee = st.selectbox('Referee', options=list(referee_map.keys()))
+
+    with cols_away_team:
+        away_team_default_index = list(team_map.keys()).index("Chelsea")
+        away_team = st.selectbox('Away Team', options=list(team_map.keys()), index=away_team_default_index)
+        col_away_ht_score, col_possession_away = st.columns(2)
+        
+        with col_away_ht_score:
+            ht_away_score = st.number_input('HT Away Scored', value=0)
+        with col_possession_away:
+            away_possession = st.slider('Away Team Possesion', 0, 100, value=100-home_possession)
+        
+        st.write("____")
+        
+        cols_away_1, cols_away_2, cols_away_3, cols_away_4 = st.columns(4)
+        
+        with cols_away_1:
+            away_shots_on_target = st.number_input('Shots on Target (A)', value=0)
+            away_shots = st.number_input('Shots (A)', value=0)
+            away_touches = st.number_input('Touches (A)', value=0)
+        with cols_away_2:
+            away_passes = st.number_input('Passes (A)', value=0)
+            away_tackles = st.number_input('Tackles (A)', value=0)
+            away_clearances = st.number_input('Clearances (A)', value=0)
+        with cols_away_3:
+            away_corners = st.number_input('Corners (A)', value=0)
+            away_offsides = st.number_input('Offsides (A)', value=0)
+            away_fouls = st.number_input('Fouls (A)', value=0)
+        with cols_away_4:
+            away_yellow_cards = st.number_input('Yellow Cards (A)', value=0)
+            away_red_cards = st.number_input('Red Cards (A)', value=0)
+        
+        st.write("____")
+        
+        col_away_points_last_5, col_away_h2h_points_last_5 = st.columns(2)
+        with col_away_points_last_5:
+            away_total_points_last_5 = st.number_input('Total Points from Last 5 Games (A)', value=0)
+        with col_away_h2h_points_last_5:
+            away_h2h_points_last_5 = st.number_input('H2H Total Points from Last 5 Games (A)', value=0)
+        
+        input_data = {
+            'venue': venue,
+            'home_team': team_map[home_team],
+            'away_team': team_map[away_team],
+            'ht_home_score': ht_home_score,
+            'ht_away_score': ht_away_score,
+            'home_possession_%': home_possession,
+            'away_possession_%': away_possession,
+            'home_shots_on_target': home_shots_on_target,
+            'away_shots_on_target': away_shots_on_target,
+            'home_shots': home_shots,
+            'away_shots': away_shots,
+            'home_touches': home_touches,
+            'away_touches': away_touches,
+            'home_passes': home_passes,
+            'away_passes': away_passes,
+            'home_tackles': home_tackles,
+            'away_tackles': away_tackles,
+            'home_clearances': home_clearances,
+            'away_clearances': away_clearances,
+            'home_corners': home_corners,
+            'away_corners': away_corners,
+            'home_offsides': home_offsides,
+            'away_offsides': away_offsides,
+            'home_yellow_cards': home_yellow_cards,
+            'away_yellow_cards': away_yellow_cards,
+            'home_red_cards': home_red_cards,
+            'away_red_cards': away_red_cards,
+            'home_fouls': home_fouls,
+            'away_fouls': away_fouls,
+            'referee': referee_map[referee],
+            'is_derby': is_derby(home_team, away_team),
+            'home_total_points_last_5': home_total_points_last_5,
+            'away_total_points_last_5': away_total_points_last_5,
+            'home_h2h_points_last_5': home_h2h_points_last_5,
+            'away_h2h_points_last_5': away_h2h_points_last_5,
+        }
+
+    # Scaling input data
+    input_df = preprocess_input(input_data)
+
+    # Load model    
+    model = CatBoostClassifier().load_model('best_model.cbm')
+
+    enter()
+    if st.button("Predict", use_container_width=True):
+        prediction = model.predict(input_df)[0]
+        if prediction == 0:
+            st.success(f"{home_team} will :red[lost] against {away_team}")
+        elif prediction == 1:
+            st.success(f"{home_team} will :orange[draw] against {away_team}")
+        elif prediction == 2:
+            st.success(f"{home_team} will :green[win] against {away_team}")
