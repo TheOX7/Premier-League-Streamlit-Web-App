@@ -1,5 +1,5 @@
 pandas
-numpy==1.21.6
+numpy==2.0.0
 plotly
 catboost==1.2.5
 scikit-learn
