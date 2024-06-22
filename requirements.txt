@@ -1,6 +1,4 @@
 pandas
-numpy
-plotly
 catboost
 scikit-learn
 streamlit_extras
