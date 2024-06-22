@@ -1,7 +1,6 @@
 import pandas as pd
 import streamlit as st
 import base64
-from catboost import CatBoostClassifier
 from PIL import Image
 from sklearn.preprocessing import MinMaxScaler
 from streamlit_extras.colored_header import colored_header
@@ -455,6 +454,8 @@ if selected_option_menu == "Club Stats" :
             radar_chart_attr(df_team_play, default_attr=["Crosses", "Through Ball"], key="team_play")
                                             
 if selected_option_menu == "Predict Season 2023/24 Match Result" : 
+    from catboost import CatBoostClassifier
+
     horizontal_line()
     st.markdown("""
         <div style='text-align: center; font-size:32px'>

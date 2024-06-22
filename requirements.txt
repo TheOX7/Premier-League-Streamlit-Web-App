@@ -1,7 +1,7 @@
 pandas
-numpy==2.0.0
+numpy
 plotly
-catboost==1.2.5
+catboost
 scikit-learn
 streamlit_extras
 streamlit_option_menu
