@@ -5,3 +5,4 @@ streamlit_extras
 streamlit_option_menu
 streamlit_elements
 streamlit_echarts
+joblib
