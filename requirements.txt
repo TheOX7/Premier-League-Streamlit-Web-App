@@ -6,3 +6,5 @@ streamlit_option_menu
 streamlit_elements
 streamlit_echarts
 joblib
+lightgbm
+gdown 
