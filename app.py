@@ -717,6 +717,17 @@ if selected_option_menu == "Predict Season 2023/24 Match Result" :
 
     # Load model    
     # model = CatBoostClassifier().load_model('best_model.cbm')
+    import gdown
+    import os
+    
+    def download_model():
+        url = 'https://drive.google.com/file/d/1QFECvmKS5vaVFnfcjhhLZ5MkJ4TdXy46/view?usp=sharing'
+        output = 'lgbm_model.joblib'
+        gdown.download(url, output, quiet=False)
+        
+    if not os.path.isfile('lgbm_model.joblib'):
+        download_model()
+    
     model = joblib.load('lgbm_model.joblib')
 
     enter()
