@@ -7,6 +7,7 @@ from streamlit_extras.colored_header import colored_header
 from streamlit_option_menu import option_menu
 from streamlit_elements import elements, mui, nivo
 from streamlit_echarts import st_echarts 
+import joblib
 
 st.set_page_config(
     page_title="Premier League 2022/23",
@@ -454,7 +455,7 @@ if selected_option_menu == "Club Stats" :
             radar_chart_attr(df_team_play, default_attr=["Crosses", "Through Ball"], key="team_play")
                                             
 if selected_option_menu == "Predict Season 2023/24 Match Result" : 
-    from catboost import CatBoostClassifier
+    # from catboost import CatBoostClassifier
 
     horizontal_line()
     st.markdown("""
@@ -715,7 +716,8 @@ if selected_option_menu == "Predict Season 2023/24 Match Result" :
     input_df = preprocess_input(input_data)
 
     # Load model    
-    model = CatBoostClassifier().load_model('best_model.cbm')
+    # model = CatBoostClassifier().load_model('best_model.cbm')
+    model = joblib.load('lgbm_model.joblib')
 
     enter()
     if st.button("Predict", use_container_width=True):
