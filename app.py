@@ -721,7 +721,7 @@ if selected_option_menu == "Predict Season 2023/24 Match Result" :
     import os
     
     def download_model():
-        url = 'https://drive.google.com/file/d/1QFECvmKS5vaVFnfcjhhLZ5MkJ4TdXy46/view?usp=sharing'
+        url = 'https://drive.google.com/uc?id=1QFECvmKS5vaVFnfcjhhLZ5MkJ4TdXy46'
         output = 'lgbm_model.joblib'
         gdown.download(url, output, quiet=False)
         
